@@ -1,0 +1,58 @@
+{# Standalone, print-optimised report.
+
+   Rendered as an ordinary page rather than generated as a PDF: the browser's
+   own "Save as PDF" produces a cleaner file than a client-side PDF library,
+   needs no third-party JavaScript, and keeps the plugin dependency-free. #}
+<!DOCTYPE html>
+<html lang="{{ craft.app.language }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>{{ element.title }} — {{ 'Analytics'|t('telescope') }}</title>
+    <style>{{ css|raw }}</style>
+    <style>
+        body { margin: 0; background: #fff; }
+        .telescope-print-header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid #111827; }
+        .telescope-print-header h1 { margin: 0 0 4px; font-size: 20px; }
+        .telescope-print-meta { color: #6b7280; font-size: 12px; }
+        .telescope-print .telescope-card { background: #f9fafb; border-color: #e5e7eb; }
+        .telescope-print .telescope-chart-grid { stroke: #e5e7eb; }
+        .telescope-print .telescope-chart-axis { fill: #6b7280; }
+        .telescope-print .telescope-table th, .telescope-print .telescope-table td { border-color: #e5e7eb; }
+        .telescope-print .telescope-header .telescope-actions { display: none; }
+
+        /* Other control panel plugins can inject banners and toolbars into any
+           CP response. None of them belong in the printed report. */
+        @media print {
+            body > *:not(.telescope-print) { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="telescope-print">
+        <div class="telescope-print-header">
+            <div>
+                <h1>{{ element.title }}</h1>
+                <div class="telescope-print-meta">{{ siteName }} · {{ element.url }}</div>
+            </div>
+            <div class="telescope-print-meta">
+                <div>{{ report.periodLabel }}</div>
+                <div>{{ 'Generated'|t('telescope') }} {{ generatedAt|date('F j, Y') }}</div>
+            </div>
+        </div>
+
+        {% include 'telescope/_components/report' with {
+            report: report,
+            element: element,
+            entryUrl: element.url,
+            printOnly: true,
+            showActions: false,
+        } only %}
+
+        <p class="telescope-no-print" style="margin-top: 28px; color: #6b7280; font-size: 12px;">
+            {{ 'Use your browser’s print dialog (⌘P / Ctrl-P) to save this report as a PDF.'|t('telescope') }}
+        </p>
+    </div>
+</body>
+</html>

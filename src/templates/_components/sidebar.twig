@@ -1,0 +1,31 @@
+{# Compact analytics summary for the entry edit sidebar, shown when
+   "Show on all entries" is enabled in settings. #}
+
+<div class="meta telescope telescope-sidebar" data-element-id="{{ element.id }}">
+    <div class="data">
+        <div class="heading">
+            <label>{{ 'Analytics'|t('telescope') }}</label>
+        </div>
+        <div class="value">
+            {% if report.hasErrors %}
+                <p class="light">{{ report.errors|first }}</p>
+            {% elseif not report.hasData %}
+                <p class="light">{{ 'No data yet.'|t('telescope') }}</p>
+            {% else %}
+                {% for card in report.overview.cards %}
+                    <div class="telescope-stat">
+                        <span>{{ card.label|t('telescope') }}</span>
+                        <span class="telescope-stat-value">{{ card.value }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <p class="light" style="margin-top: 6px;">
+                {{ report.periodLabel }} ·
+                <a href="{{ url('telescope/entry/' ~ element.id, { siteId: element.siteId }) }}">
+                    {{ 'Full report'|t('telescope') }}
+                </a>
+            </p>
+        </div>
+    </div>
+</div>

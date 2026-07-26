@@ -1,0 +1,220 @@
+{# The full analytics panel: cards, timeline chart and breakdown tables.
+   Shared by the field, the standalone CP screen and (without the chrome) the
+   print view. #}
+
+{% set printOnly = printOnly ?? false %}
+{% set showActions = showActions ?? not printOnly %}
+
+<div class="telescope"
+     data-element-id="{{ element.id ?? '' }}"
+     data-period="{{ periodHandle ?? '' }}"
+     data-title="{{ element.title ?? '' }}"
+     data-url="{{ entryUrl ?? '' }}"
+     data-site-name="{{ element.site.name ?? '' }}"
+     data-period-label="{{ report.periodLabel }}"
+     data-generated="{{ now|date('F j, Y') }}">
+
+    <div class="telescope-header">
+        <div>
+            <h2>{{ 'Page analytics'|t('telescope') }}</h2>
+            <div class="telescope-period">{{ report.periodLabel }} · {{ report.path }}</div>
+        </div>
+
+        {% if showActions %}
+            <div class="telescope-actions telescope-no-print">
+                <button type="button" class="btn small js-telescope-refresh"
+                        data-loading-label="{{ 'Refreshing…'|t('telescope') }}">
+                    {{ 'Refresh'|t('telescope') }}
+                </button>
+                {% if report.hasData %}
+                    <button type="button" class="btn small js-telescope-pdf"
+                            data-loading-label="{{ 'Building PDF…'|t('telescope') }}">
+                        {{ 'Download PDF'|t('telescope') }}
+                    </button>
+                {% endif %}
+                {% if printUrl is defined and printUrl %}
+                    <a class="btn small" href="{{ printUrl }}" target="_blank" rel="noopener">
+                        {{ 'Print'|t('telescope') }}
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% for error in report.errors %}
+        <div class="telescope-notice telescope-notice-error" style="margin-bottom: 12px;">{{ error }}</div>
+    {% endfor %}
+
+    {# With no data and an error above, a row of zeroed cards just adds noise —
+       the error already says why there is nothing to show. #}
+    {% if not report.hasData %}
+        {% if not report.hasErrors %}
+            {% include 'telescope/_components/notice' with {
+                message: 'No analytics data for this page yet. Google Analytics can take 24–48 hours to report on a newly published page.'|t('telescope'),
+                type: 'info',
+            } only %}
+        {% endif %}
+    {% else %}
+        <div class="telescope-cards">
+            {% for card in report.overview.cards %}
+                <div class="telescope-card">
+                    <div class="telescope-card-label">{{ card.label|t('telescope') }}</div>
+                    <div class="telescope-card-value">{{ card.value }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if report.timeline|length %}
+            <div class="telescope-section">
+                <div class="telescope-section-header">
+                    <h3>{{ 'Views over time'|t('telescope') }}</h3>
+                    {# Craft's .btn sets `display`, which beats the [hidden]
+                       attribute — use its own .hidden class instead. #}
+                    <button type="button" class="btn small hidden js-telescope-reset-zoom telescope-no-print">
+                        {{ 'Reset zoom'|t('telescope') }}
+                    </button>
+                </div>
+
+                {% if printOnly %}
+                    {# No JavaScript runs in the print view, so the chart is
+                       rendered server-side as SVG. #}
+                    <div class="telescope-chart-wrap">
+                        {{ craft.telescope.chart(report.timeline)|raw }}
+                        <div class="telescope-legend">
+                            <span class="telescope-legend-views">{{ 'Page views'|t('telescope') }}</span>
+                            <span class="telescope-legend-users">{{ 'Visitors'|t('telescope') }}</span>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="telescope-hint telescope-no-print">
+                        {{ 'Drag across the chart to zoom into a range, scroll to zoom in and out, double-click to reset.'|t('telescope') }}
+                    </p>
+                    <div class="telescope-chart-wrap telescope-chart-canvas-wrap">
+                        <canvas class="js-telescope-chart"></canvas>
+                    </div>
+                    {# Chart.js draws its own legend on screen; this one is for
+                       the PDF, where the chart is the plain SVG. #}
+                    <div class="telescope-legend telescope-legend-pdf">
+                        <span class="telescope-legend-views">{{ 'Page views'|t('telescope') }}</span>
+                        <span class="telescope-legend-users">{{ 'Visitors'|t('telescope') }}</span>
+                    </div>
+                    <script type="application/json" class="js-telescope-chart-data">{{ report.timeline|json_encode|raw }}</script>
+                    {# The same chart as standalone SVG. The PDF export rasterises
+                       this rather than reading the Chart.js canvas back, which
+                       browsers can refuse to do for GPU-backed canvases.
+
+                       Carried as JSON, not as escaped markup: a <script> element
+                       holds raw text, so HTML entities inside it are never
+                       decoded and the SVG would not parse. #}
+                    <script type="application/json" class="js-telescope-chart-svg">{{ craft.telescope.chart(report.timeline)|json_encode(constant('JSON_HEX_TAG'))|raw }}</script>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div class="telescope-grid">
+            {% if report.geography|length %}
+                <div class="telescope-section">
+                    <h3>{{ 'Top locations'|t('telescope') }}</h3>
+                    <table class="telescope-table">
+                        <thead>
+                            <tr>
+                                <th>{{ 'City'|t('telescope') }}</th>
+                                <th>{{ 'Region'|t('telescope') }}</th>
+                                <th class="telescope-numeric">{{ 'Visitors'|t('telescope') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in report.geography %}
+                                <tr>
+                                    <td>{{ row.city }}</td>
+                                    <td>{{ row.region }}</td>
+                                    <td class="telescope-numeric">{{ row.users|number_format }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+
+            {% if report.sources|length %}
+                <div class="telescope-section">
+                    <h3>{{ 'Traffic sources'|t('telescope') }}</h3>
+                    <table class="telescope-table">
+                        <thead>
+                            <tr>
+                                <th>{{ 'Source'|t('telescope') }}</th>
+                                <th>{{ 'Medium'|t('telescope') }}</th>
+                                <th class="telescope-numeric">{{ 'Sessions'|t('telescope') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in report.sources %}
+                                <tr>
+                                    <td>{{ row.source }}</td>
+                                    <td>{{ row.medium }}</td>
+                                    <td class="telescope-numeric">{{ row.sessions|number_format }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+
+            {% if report.referrers|length %}
+                <div class="telescope-section">
+                    <h3>{{ 'Where visitors came from'|t('telescope') }}</h3>
+                    <table class="telescope-table">
+                        <thead>
+                            <tr>
+                                <th>{{ 'Referrer'|t('telescope') }}</th>
+                                <th>{{ 'Type'|t('telescope') }}</th>
+                                <th class="telescope-numeric">{{ 'Views'|t('telescope') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in report.referrers %}
+                                <tr>
+                                    <td><span class="telescope-truncate" title="{{ row.url }}">{{ row.referrer }}</span></td>
+                                    <td>
+                                        <span class="telescope-tag {{ row.isInternal ? 'telescope-tag-internal' : 'telescope-tag-external' }}">
+                                            {{ row.isInternal ? 'Internal'|t('telescope') : 'External'|t('telescope') }}
+                                        </span>
+                                    </td>
+                                    <td class="telescope-numeric">{{ row.views|number_format }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+
+            {% if report.landingPages|length %}
+                <div class="telescope-section">
+                    <h3>{{ 'Where their visit started'|t('telescope') }}</h3>
+                    <table class="telescope-table">
+                        <thead>
+                            <tr>
+                                <th>{{ 'Landing page'|t('telescope') }}</th>
+                                <th class="telescope-numeric">{{ 'Sessions'|t('telescope') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in report.landingPages %}
+                                <tr>
+                                    <td><span class="telescope-truncate" title="{{ row.page }}">{{ row.page }}</span></td>
+                                    <td class="telescope-numeric">{{ row.sessions|number_format }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if entryUrl is defined and entryUrl %}
+        <div class="telescope-footnote">
+            <a href="{{ entryUrl }}" target="_blank" rel="noopener">{{ entryUrl }}</a>
+        </div>
+    {% endif %}
+</div>

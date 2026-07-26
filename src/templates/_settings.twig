@@ -1,0 +1,249 @@
+{% import '_includes/forms.twig' as forms %}
+
+{% do view.registerAssetBundle('justinholtweb\\telescope\\web\\assets\\cp\\TelescopeAsset') %}
+
+{% set isServiceAccount = settings.authMode == 'serviceAccount' %}
+
+<h2>{{ 'Google connection'|t('telescope') }}</h2>
+
+<p class="light">
+    {{ 'Telescope talks to the Google Analytics Data API directly — no third-party plugin or account is involved. A service account is the simplest setup: create one in Google Cloud, enable the Google Analytics Data API, then add its email as a Viewer on your GA4 property.'|t('telescope') }}
+</p>
+
+{{ forms.selectField({
+    label: 'Authentication method'|t('telescope'),
+    id: 'authMode',
+    name: 'authMode',
+    options: {
+        serviceAccount: 'Service account (recommended)'|t('telescope'),
+        oauth: 'OAuth refresh token'|t('telescope'),
+    },
+    value: settings.authMode,
+    toggle: true,
+    targetPrefix: 'auth-',
+    errors: settings.getErrors('authMode'),
+}) }}
+
+<div id="auth-serviceAccount" class="{{ isServiceAccount ? '' : 'hidden' }}">
+    {{ forms.autosuggestField({
+        label: 'Service account credentials'|t('telescope'),
+        instructions: 'Paste the service account JSON key, or give the path to the key file. Storing it in an environment variable keeps it out of project config.'|t('telescope'),
+        id: 'credentials',
+        name: 'credentials',
+        suggestEnvVars: true,
+        value: settings.credentials,
+        errors: settings.getErrors('credentials'),
+    }) }}
+</div>
+
+<div id="auth-oauth" class="{{ isServiceAccount ? 'hidden' : '' }}">
+    {{ forms.autosuggestField({
+        label: 'OAuth client ID'|t('telescope'),
+        id: 'clientId',
+        name: 'clientId',
+        suggestEnvVars: true,
+        value: settings.clientId,
+        errors: settings.getErrors('clientId'),
+    }) }}
+
+    {{ forms.autosuggestField({
+        label: 'OAuth client secret'|t('telescope'),
+        id: 'clientSecret',
+        name: 'clientSecret',
+        suggestEnvVars: true,
+        value: settings.clientSecret,
+        errors: settings.getErrors('clientSecret'),
+    }) }}
+
+    {{ forms.autosuggestField({
+        label: 'OAuth refresh token'|t('telescope'),
+        id: 'refreshToken',
+        name: 'refreshToken',
+        suggestEnvVars: true,
+        value: settings.refreshToken,
+        errors: settings.getErrors('refreshToken'),
+    }) }}
+</div>
+
+{{ forms.autosuggestField({
+    label: 'GA4 property ID'|t('telescope'),
+    instructions: 'The numeric property ID from Google Analytics → Admin → Property details. Not the “G-” measurement ID.'|t('telescope'),
+    id: 'propertyId',
+    name: 'propertyId',
+    placeholder: '123456789',
+    suggestEnvVars: true,
+    value: settings.propertyId,
+    errors: settings.getErrors('propertyId'),
+}) }}
+
+{% if craft.app.isMultiSite %}
+    <div class="field">
+        <div class="heading">
+            <label>{{ 'Per-site property IDs'|t('telescope') }}</label>
+            <div class="instructions">
+                <p>{{ 'Leave a site blank to use the property above.'|t('telescope') }}</p>
+            </div>
+        </div>
+        <div class="input">
+            {% for site in craft.app.sites.getAllSites() %}
+                {{ forms.autosuggest({
+                    id: 'sitePropertyIds-' ~ site.handle,
+                    name: 'sitePropertyIds[' ~ site.handle ~ ']',
+                    placeholder: site.name,
+                    suggestEnvVars: true,
+                    value: settings.sitePropertyIds[site.handle] ?? '',
+                }) }}
+                <div class="light smalltext" style="margin: 2px 0 10px;">{{ site.name }}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {{ forms.lightswitchField({
+        label: 'Filter by hostname'|t('telescope'),
+        instructions: 'Add each site’s hostname to every query. Turn this on when several sites report into one GA4 property and share page paths.'|t('telescope'),
+        id: 'filterByHostname',
+        name: 'filterByHostname',
+        on: settings.filterByHostname,
+    }) }}
+{% endif %}
+
+<div class="field">
+    <div class="input">
+        <button type="button" class="btn js-telescope-test">{{ 'Test connection'|t('telescope') }}</button>
+        <div class="js-telescope-test-result" style="margin-top: 10px;"></div>
+    </div>
+</div>
+
+<hr>
+
+<h2>{{ 'Reporting'|t('telescope') }}</h2>
+
+{{ forms.selectField({
+    label: 'Default period'|t('telescope'),
+    id: 'defaultPeriod',
+    name: 'defaultPeriod',
+    options: periodOptions ?? {
+        last7days: 'Last 7 days'|t('telescope'),
+        last14days: 'Last 14 days'|t('telescope'),
+        last28days: 'Last 28 days'|t('telescope'),
+        last30days: 'Last 30 days'|t('telescope'),
+        last90days: 'Last 90 days'|t('telescope'),
+        last365days: 'Last 365 days'|t('telescope'),
+        allTime: 'All time'|t('telescope'),
+    },
+    value: settings.defaultPeriod,
+    errors: settings.getErrors('defaultPeriod'),
+}) }}
+
+{{ forms.selectField({
+    label: 'Path match type'|t('telescope'),
+    instructions: 'How an entry’s URL is matched against the page paths Google recorded.'|t('telescope'),
+    id: 'pathMatchType',
+    name: 'pathMatchType',
+    options: {
+        EXACT: 'Exact'|t('telescope'),
+        BEGINS_WITH: 'Begins with'|t('telescope'),
+        CONTAINS: 'Contains'|t('telescope'),
+    },
+    value: settings.pathMatchType,
+    errors: settings.getErrors('pathMatchType'),
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Include query strings'|t('telescope'),
+    instructions: 'Match paths including their query string. Off by default, so “/blog?page=2” counts towards “/blog”.'|t('telescope'),
+    id: 'includeQueryString',
+    name: 'includeQueryString',
+    on: settings.includeQueryString,
+}) }}
+
+{{ forms.checkboxSelectField({
+    label: 'Report sections'|t('telescope'),
+    instructions: 'Each section is one API call. Switch off what you don’t need to stay well inside your quota.'|t('telescope'),
+    id: 'sections',
+    name: 'sections',
+    options: sectionOptions ?? {
+        overview: 'Overview totals'|t('telescope'),
+        timeline: 'Views over time'|t('telescope'),
+        geography: 'Top locations'|t('telescope'),
+        sources: 'Traffic sources'|t('telescope'),
+        referrers: 'Referring pages'|t('telescope'),
+        landingPages: 'Landing pages'|t('telescope'),
+    },
+    values: settings.sections,
+}) }}
+
+{{ forms.textField({
+    label: 'Table rows'|t('telescope'),
+    instructions: 'Rows shown in each breakdown table.'|t('telescope'),
+    id: 'rowLimit',
+    name: 'rowLimit',
+    type: 'number',
+    min: 1,
+    max: 100,
+    size: 4,
+    value: settings.rowLimit,
+    errors: settings.getErrors('rowLimit'),
+}) }}
+
+{{ forms.textField({
+    label: 'Cache duration'|t('telescope'),
+    instructions: 'Seconds a report is cached for. Set to 0 to disable caching (not recommended — the Data API is rate limited).'|t('telescope'),
+    id: 'cacheDuration',
+    name: 'cacheDuration',
+    type: 'number',
+    min: 0,
+    size: 8,
+    value: settings.cacheDuration,
+    errors: settings.getErrors('cacheDuration'),
+}) }}
+
+{{ forms.textField({
+    label: 'Widget rows'|t('telescope'),
+    instructions: 'Pages listed in the “Top pages” dashboard widget.'|t('telescope'),
+    id: 'widgetLimit',
+    name: 'widgetLimit',
+    type: 'number',
+    min: 1,
+    max: 50,
+    size: 4,
+    value: settings.widgetLimit,
+    errors: settings.getErrors('widgetLimit'),
+}) }}
+
+<hr>
+
+<h2>{{ 'Placement'|t('telescope') }}</h2>
+
+<p class="light">
+    {{ 'Add the “Analytics” field to a field layout for the full report, or switch this on for a compact summary in every entry’s sidebar.'|t('telescope') }}
+</p>
+
+{{ forms.lightswitchField({
+    label: 'Show on all entries'|t('telescope'),
+    id: 'autoAttachToEntries',
+    name: 'autoAttachToEntries',
+    on: settings.autoAttachToEntries,
+    toggle: 'auto-attach-sections',
+}) }}
+
+<div id="auto-attach-sections" class="{{ settings.autoAttachToEntries ? '' : 'hidden' }}">
+    {{ forms.checkboxSelectField({
+        label: 'Limited to sections'|t('telescope'),
+        instructions: 'Leave all unchecked to include every section.'|t('telescope'),
+        id: 'autoAttachSections',
+        name: 'autoAttachSections',
+        options: craft.app.entries.getAllSections()|map(s => { label: s.name, value: s.handle })|values,
+        values: settings.autoAttachSections,
+    }) }}
+</div>
+
+<hr>
+
+{# A nested <form> is not allowed inside Craft's settings form, so the cache
+   button posts over Ajax instead. #}
+<div class="field">
+    <div class="input">
+        <button type="button" class="btn js-telescope-clear-cache">{{ 'Clear cached reports'|t('telescope') }}</button>
+    </div>
+</div>

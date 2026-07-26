@@ -1,0 +1,78 @@
+{
+    "name": "justinholtweb/craft-telescope",
+    "description": "Per-entry Google Analytics 4 reporting inside the Craft control panel — page views, visitors, sessions, timeline, geography, traffic sources and user journey for any entry with a public URL.",
+    "type": "craft-plugin",
+    "version": "5.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "telescope",
+        "analytics",
+        "google analytics",
+        "ga4",
+        "reporting",
+        "dashboard"
+    ],
+    "license": "proprietary",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Justin Holt",
+            "homepage": "https://justinholt.com"
+        }
+    ],
+    "support": {
+        "email": "justin@justinholt.com",
+        "issues": "https://github.com/justinholtweb/craft-telescope/issues",
+        "source": "https://github.com/justinholtweb/craft-telescope"
+    },
+    "require": {
+        "php": "^8.2",
+        "ext-json": "*",
+        "ext-openssl": "*",
+        "craftcms/cms": "^5.0"
+    },
+    "require-dev": {
+        "craftcms/ecs": "dev-main",
+        "craftcms/phpstan": "dev-main",
+        "pestphp/pest": "^3.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "justinholtweb\\telescope\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "justinholtweb\\telescope\\tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "phpstan": "phpstan analyse",
+        "ecs": "ecs check --ansi",
+        "ecs-fix": "ecs check --fix --ansi"
+    },
+    "config": {
+        "allow-plugins": {
+            "craftcms/plugin-installer": true,
+            "pestphp/pest-plugin": true,
+            "yiisoft/yii2-composer": true
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "name": "Telescope",
+        "handle": "telescope",
+        "developer": "Justin Holt",
+        "developerUrl": "https://justinholt.com",
+        "documentationUrl": "https://github.com/justinholtweb/craft-telescope/blob/main/README.md",
+        "changelogUrl": "https://raw.githubusercontent.com/justinholtweb/craft-telescope/main/CHANGELOG.md",
+        "hasCpSettings": true,
+        "hasCpSection": true,
+        "class": "justinholtweb\\telescope\\Plugin"
+    }
+}

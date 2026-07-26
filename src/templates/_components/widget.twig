@@ -1,0 +1,34 @@
+{# Dashboard widget body: the property's most-viewed pages. #}
+
+{% if pages|length %}
+    <table class="data fullwidth telescope-table">
+        <thead>
+            <tr>
+                <th>{{ 'Page'|t('telescope') }}</th>
+                <th class="telescope-numeric">{{ 'Views'|t('telescope') }}</th>
+                <th class="telescope-numeric">{{ 'Visitors'|t('telescope') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for page in pages %}
+                <tr>
+                    <td>
+                        <span class="telescope-truncate" title="{{ page.title ? page.title ~ ' — ' ~ page.path : page.path }}">
+                            {{ page.title ?: page.path }}
+                        </span>
+                        {% if page.title %}
+                            <span class="light code" style="font-size: 11px;">{{ page.path }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="telescope-numeric">{{ page.views|number_format }}</td>
+                    <td class="telescope-numeric">{{ page.users|number_format }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    {% include 'telescope/_components/notice' with {
+        message: 'No page views recorded for this period.'|t('telescope'),
+        type: 'info',
+    } only %}
+{% endif %}

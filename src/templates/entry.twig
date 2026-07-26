@@ -1,0 +1,41 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms.twig' as forms %}
+
+{% set title = element.title %}
+{% set selectedSubnavItem = 'overview' %}
+
+{% set crumbs = [
+    { label: 'Telescope'|t('telescope'), url: url('telescope') },
+] %}
+
+{% block actionButton %}
+    <div class="telescope-actions">
+        {{ forms.select({
+            id: 'period',
+            name: 'period',
+            class: 'js-telescope-period',
+            options: periodOptions,
+            value: period.handle ?? '',
+        }) }}
+        {% if report.hasData %}
+            <button type="button" class="btn js-telescope-pdf"
+                    data-loading-label="{{ 'Building PDF…'|t('telescope') }}">
+                {{ 'Download PDF'|t('telescope') }}
+            </button>
+        {% endif %}
+        <a class="btn" href="{{ url('telescope/print/' ~ element.id, { siteId: element.siteId, period: period.handle ?? period.startDate }) }}"
+           target="_blank" rel="noopener">{{ 'Print'|t('telescope') }}</a>
+        <a class="btn" href="{{ element.cpEditUrl }}">{{ 'Edit entry'|t('telescope') }}</a>
+    </div>
+{% endblock %}
+
+{% block content %}
+    {% include 'telescope/_components/report' with {
+        report: report,
+        element: element,
+        entryUrl: element.url,
+        printUrl: null,
+        periodHandle: period.handle ?? '',
+        showActions: false,
+    } only %}
+{% endblock %}

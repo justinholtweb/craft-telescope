@@ -1,0 +1,73 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms.twig' as forms %}
+
+{% set title = 'Telescope'|t('telescope') %}
+{% set selectedSubnavItem = 'overview' %}
+
+{% block actionButton %}
+    <button type="button" class="btn js-telescope-clear-cache">{{ 'Clear cache'|t('telescope') }}</button>
+{% endblock %}
+
+{% block content %}
+    <div class="telescope">
+        {% if not isConfigured %}
+            {% include 'telescope/_components/notice' with {
+                message: 'Telescope is not connected to Google Analytics yet. Add your credentials and property ID in the plugin settings.'|t('telescope'),
+                type: 'info',
+            } only %}
+        {% else %}
+            <div class="telescope-header">
+                <div>
+                    <h2>{{ 'Top pages'|t('telescope') }}</h2>
+                    <div class="telescope-period">{{ period.label }}</div>
+                </div>
+                <div class="telescope-actions">
+                    {% if craft.app.isMultiSite %}
+                        {{ forms.select({
+                            id: 'siteId',
+                            name: 'siteId',
+                            class: 'js-telescope-site',
+                            options: sites|map(s => { label: s.name, value: s.id })|values,
+                            value: siteId,
+                        }) }}
+                    {% endif %}
+                    {{ forms.select({
+                        id: 'period',
+                        name: 'period',
+                        class: 'js-telescope-period',
+                        options: periodOptions,
+                        value: period.handle ?? '',
+                    }) }}
+                </div>
+            </div>
+
+            {% if pages|length %}
+                <table class="data fullwidth telescope-table">
+                    <thead>
+                        <tr>
+                            <th>{{ 'Page'|t('telescope') }}</th>
+                            <th>{{ 'Path'|t('telescope') }}</th>
+                            <th class="telescope-numeric">{{ 'Views'|t('telescope') }}</th>
+                            <th class="telescope-numeric">{{ 'Visitors'|t('telescope') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for page in pages %}
+                            <tr>
+                                <td>{{ page.title ?: '—' }}</td>
+                                <td><span class="telescope-truncate code" title="{{ page.path }}">{{ page.path }}</span></td>
+                                <td class="telescope-numeric">{{ page.views|number_format }}</td>
+                                <td class="telescope-numeric">{{ page.users|number_format }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                {% include 'telescope/_components/notice' with {
+                    message: 'No page views recorded for this period.'|t('telescope'),
+                    type: 'info',
+                } only %}
+            {% endif %}
+        {% endif %}
+    </div>
+{% endblock %}

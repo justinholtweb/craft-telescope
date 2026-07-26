@@ -1,0 +1,19 @@
+{% import '_includes/forms.twig' as forms %}
+
+{{ forms.selectField({
+    label: 'Period'|t('telescope'),
+    instructions: 'The date range this field reports on.'|t('telescope'),
+    id: 'period',
+    name: 'period',
+    options: periodOptions,
+    value: field.period,
+    errors: field.getErrors('period'),
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Hide when empty'|t('telescope'),
+    instructions: 'Show nothing at all when the page has no recorded traffic, instead of a row of zeroes.'|t('telescope'),
+    id: 'hideWhenEmpty',
+    name: 'hideWhenEmpty',
+    on: field.hideWhenEmpty,
+}) }}

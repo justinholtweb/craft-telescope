@@ -1,0 +1,362 @@
+/**
+ * Telescope — control panel styles.
+ *
+ * Built on Craft's CSS custom properties so the panel follows the CP's light
+ * and dark themes without a second stylesheet.
+ */
+
+.telescope {
+    --telescope-views: #2563eb;
+    --telescope-users: #0d9488;
+    font-size: 14px;
+}
+
+.telescope-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.telescope-header h2 {
+    margin: 0 0 2px;
+    font-size: 16px;
+}
+
+.telescope-period {
+    color: var(--medium-text-color);
+    font-size: 12px;
+}
+
+.telescope-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Overview cards
+   ========================================================================== */
+
+.telescope-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.telescope-card {
+    padding: 12px 14px;
+    border: 1px solid var(--hairline-color);
+    border-radius: var(--large-border-radius, 8px);
+    background: var(--gray-050, #f9fafb);
+}
+
+.telescope-card-label {
+    margin-bottom: 4px;
+    color: var(--medium-text-color);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.telescope-card-value {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Chart
+   ========================================================================== */
+
+.telescope-section {
+    margin-bottom: 24px;
+}
+
+.telescope-section h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.telescope-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.telescope-section-header h3 {
+    margin-bottom: 6px;
+}
+
+.telescope-hint {
+    margin: 0 0 8px;
+    color: var(--medium-text-color);
+    font-size: 11px;
+}
+
+.telescope-chart-wrap {
+    position: relative;
+    padding: 8px 4px 0;
+    border: 1px solid var(--hairline-color);
+    border-radius: var(--large-border-radius, 8px);
+}
+
+/* Chart.js sizes its canvas from the parent, so the parent needs a height. */
+.telescope-chart-canvas-wrap {
+    height: 300px;
+    padding: 10px;
+}
+
+.telescope-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 340px;
+}
+
+.telescope-chart-grid {
+    stroke: var(--hairline-color, #e5e7eb);
+    stroke-width: 1;
+}
+
+.telescope-chart-axis {
+    fill: var(--medium-text-color, #6b7280);
+    font-size: 10px;
+}
+
+.telescope-chart-hit {
+    fill: transparent;
+    cursor: crosshair;
+}
+
+.telescope-chart-hit:hover {
+    fill: var(--gray-200, #e5e7eb);
+    fill-opacity: 0.35;
+}
+
+.telescope-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    padding: 0 8px 8px;
+    color: var(--medium-text-color);
+    font-size: 12px;
+}
+
+.telescope-legend span::before {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    border-radius: 50%;
+    content: '';
+}
+
+.telescope-legend .telescope-legend-views::before {
+    background: var(--telescope-views);
+}
+
+.telescope-legend .telescope-legend-users::before {
+    background: var(--telescope-users);
+}
+
+.telescope-tooltip {
+    position: absolute;
+    z-index: 10;
+    padding: 6px 9px;
+    border-radius: 4px;
+    background: var(--gray-800, #1f2937);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    white-space: nowrap;
+}
+
+.telescope-tooltip.is-visible {
+    opacity: 1;
+}
+
+.telescope-tooltip strong {
+    display: block;
+    font-weight: 600;
+}
+
+/* Tables
+   ========================================================================== */
+
+.telescope-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* Breathing room at the foot of the capture, so the last line of the report is
+   not flush against the bottom edge of the bitmap. */
+.telescope-pdf-capture {
+    padding-bottom: 10px;
+}
+
+/* Chart.js draws its own legend on screen, so this one only appears in the
+   PDF, where the chart is the plain SVG. */
+.telescope-legend-pdf {
+    display: none;
+}
+
+.telescope-pdf-capture .telescope-legend-pdf {
+    display: flex;
+}
+
+/* Four breakdown tables across is comfortable on a wide screen and unreadable
+   at A4 width, so both routes to paper drop to two columns. */
+.telescope-pdf-capture .telescope-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 28px;
+}
+
+.telescope-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.telescope-table th,
+.telescope-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--hairline-color);
+    text-align: left;
+    vertical-align: top;
+}
+
+.telescope-table th {
+    color: var(--medium-text-color);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.telescope-table td.telescope-numeric,
+.telescope-table th.telescope-numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.telescope-truncate {
+    display: block;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.5;
+}
+
+/* On paper there is no hover to reveal a truncated value, so let it wrap. This
+   also sidesteps html2canvas clipping `overflow: hidden` text to the pixel,
+   which shears the bottom off every truncated cell. */
+.telescope-pdf-capture .telescope-truncate {
+    max-width: none;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.telescope-tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.telescope-tag-internal {
+    background: var(--blue-100, #dbeafe);
+    color: var(--blue-800, #1e40af);
+}
+
+.telescope-tag-external {
+    background: var(--yellow-100, #fef3c7);
+    color: var(--yellow-800, #92400e);
+}
+
+/* Notices
+   ========================================================================== */
+
+.telescope-notice {
+    padding: 12px 14px;
+    border: 1px solid var(--hairline-color);
+    border-radius: var(--large-border-radius, 8px);
+    background: var(--gray-050, #f9fafb);
+    color: var(--medium-text-color);
+}
+
+.telescope-notice-error {
+    border-color: var(--red-300, #fca5a5);
+    background: var(--red-050, #fef2f2);
+    color: var(--red-800, #991b1b);
+}
+
+.telescope-footnote {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--hairline-color);
+    color: var(--medium-text-color);
+    font-size: 12px;
+}
+
+/* Sidebar panel
+   ========================================================================== */
+
+.telescope-sidebar .telescope-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 12px;
+}
+
+.telescope-sidebar .telescope-stat-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Print view
+   ========================================================================== */
+
+.telescope-print {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px;
+    color: #111827;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media print {
+    .telescope-no-print {
+        display: none !important;
+    }
+
+    .telescope-print {
+        padding: 0;
+    }
+
+    .telescope-section {
+        break-inside: avoid;
+    }
+
+    .telescope-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px 28px;
+    }
+
+    .telescope-truncate {
+        max-width: none;
+        overflow: visible;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
