@@ -26,6 +26,7 @@ use justinholtweb\telescope\Plugin;
 use justinholtweb\telescope\reports\PageReport;
 use justinholtweb\telescope\reports\ReportBuilder;
 use justinholtweb\telescope\reports\ReportOptions;
+use justinholtweb\telescope\reports\ReportSection;
 use yii\caching\CacheInterface;
 use yii\caching\TagDependency;
 
@@ -62,6 +63,7 @@ class Analytics extends Component
         ElementInterface $element,
         ?Period $period = null,
         bool $useCache = true,
+        ?array $sections = null,
     ): PageReport {
         $url = $element->getUrl();
 
@@ -69,17 +71,22 @@ class Analytics extends Component
             return PageReport::empty();
         }
 
-        return $this->getReport($url, $element->siteId, $period, $useCache);
+        return $this->getReport($url, $element->siteId, $period, $useCache, $sections);
     }
 
     /**
      * The report for a URL or path.
+     *
+     * @param list<string>|null $sections limit the report to these sections —
+     *                                    each one saved is one API call not made.
+     *                                    Null means whatever the settings enable.
      */
     public function getReport(
         string $url,
         ?int $siteId = null,
         ?Period $period = null,
         bool $useCache = true,
+        ?array $sections = null,
     ): PageReport {
         $settings = $this->getSettings();
         $period ??= $settings->getDefaultPeriod();
@@ -91,7 +98,8 @@ class Analytics extends Component
             return PageReport::empty('', $period->label);
         }
 
-        $cacheKey = $this->reportCacheKey($path, $site, $period);
+        $options = $this->createOptions($settings, $site, $sections);
+        $cacheKey = $this->reportCacheKey($path, $site, $period, $options);
         $cache = $this->getCache();
 
         if ($useCache && $settings->getCacheDuration() > 0) {
@@ -102,7 +110,7 @@ class Analytics extends Component
             }
         }
 
-        $builder = $this->createBuilder($site);
+        $builder = $this->createBuilder($site, $options);
 
         if ($builder === null) {
             return PageReport::empty($path, $period->label)
@@ -237,7 +245,7 @@ class Analytics extends Component
      * Build a report builder for a site, or null when the plugin is not
      * configured for it.
      */
-    public function createBuilder(?Site $site = null): ?ReportBuilder
+    public function createBuilder(?Site $site = null, ?ReportOptions $options = null): ?ReportBuilder
     {
         $settings = $this->getSettings();
         $propertyId = $settings->getPropertyIdForSite($site?->handle);
@@ -256,19 +264,33 @@ class Analytics extends Component
 
         $client = new Client($propertyId, $provider, $this->getHttpClient());
 
-        return new ReportBuilder($client, $this->createOptions($settings, $site));
+        return new ReportBuilder($client, $options ?? $this->createOptions($settings, $site));
     }
 
-    public function createOptions(?Settings $settings = null, ?Site $site = null): ReportOptions
-    {
+    /**
+     * @param list<string>|null $sections narrow the enabled sections further —
+     *                                    a caller that only needs the headline
+     *                                    numbers should not pay for six calls.
+     *                                    Never widens what the settings allow.
+     */
+    public function createOptions(
+        ?Settings $settings = null,
+        ?Site $site = null,
+        ?array $sections = null,
+    ): ReportOptions {
         $settings ??= $this->getSettings();
+        $enabled = $settings->getSections();
+
+        if ($sections !== null) {
+            $enabled = ReportSection::normalize(array_intersect($enabled, $sections));
+        }
 
         return new ReportOptions(
             matchType: $settings->pathMatchType ?: ReportRequest::MATCH_EXACT,
             hostname: $settings->filterByHostname ? $this->hostnameForSite($site) : null,
             rowLimit: $settings->getRowLimit(),
             knownHosts: $this->knownHosts(),
-            sections: $settings->getSections(),
+            sections: $enabled,
         );
     }
 
@@ -351,12 +373,12 @@ class Analytics extends Component
         return $sites->getSiteById($siteId) ?? $sites->getCurrentSite();
     }
 
-    private function reportCacheKey(string $path, ?Site $site, Period $period): string
+    private function reportCacheKey(string $path, ?Site $site, Period $period, ReportOptions $options): string
     {
         return self::CACHE_KEY_PREFIX . 'report:' . implode(':', [
             $site?->id ?? 0,
             $period->cacheKey(),
-            $this->createOptions(null, $site)->fingerprint(),
+            $options->fingerprint(),
             sha1($path),
         ]);
     }

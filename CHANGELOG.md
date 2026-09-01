@@ -1,5 +1,16 @@
 # Release Notes for Telescope
 
+## 5.1.0 - 2026-09-01
+
+### Added
+
+- `Analytics::getReport()` and `getReportForElement()` take an optional `$sections` argument, so
+  a caller that only needs the headline numbers pays for one API call instead of six. Handy for
+  listing screens that show a view count per row. It can only narrow what the settings already
+  enable, never widen it, and section-limited reports are cached separately from full ones.
+- `Analytics::createBuilder()` accepts a prepared `ReportOptions`, and `createOptions()` takes
+  the same optional `$sections`.
+
 ## 5.0.0 - 2026-07-26
 
 Initial release.
