@@ -1,5 +1,27 @@
 # Release Notes for Telescope
 
+## 5.2.0 - 2026-09-01
+
+### Added
+
+- **Per-site credentials.** Sites could already point at their own GA4 property, but they all
+  shared one Google identity — which does not hold when a multi-site install's properties live
+  in different Google accounts. **Per-site service accounts** and **Per-site refresh tokens**
+  sit beside the existing per-site property IDs and fall back to the default when left blank,
+  so single-identity installs are unchanged. The OAuth client ID and secret stay shared: one
+  application, one consent screen; what differs per site is who authorised it.
+- `Settings::getCredentialsForSite()` and `getRefreshTokenForSite()`; `isConfigured()` and
+  `Analytics::createTokenProvider()` are now site-aware. Providers are still memoised by
+  credential rather than by site, so sites sharing one also share its access token and refresh.
+- A bad per-site service account key now names the site it belongs to instead of failing as
+  "the credentials".
+
+### Changed
+
+- `telescope/analytics/check` checks **every** site by default, and accepts `--site=<handle>`.
+  A single verdict for the primary site would hide a second site whose access had lapsed.
+- **Test connection** on the settings screen picks a site on multi-site installs.
+
 ## 5.1.0 - 2026-09-01
 
 ### Added

@@ -84,6 +84,8 @@ Either way, an editor needs the **View analytics reports** permission.
 | Authentication method | Service account | Or OAuth refresh token. |
 | Service account credentials | — | JSON, a file path, or an env var holding either. |
 | GA4 property ID | — | Numeric. Per-site overrides available on multi-site installs. |
+| Per-site service accounts | — | Multi-site, service account mode. For sites reporting into a different GA4 account. |
+| Per-site refresh tokens | — | Multi-site, OAuth mode. For sites authorised by a different Google account. |
 | Filter by hostname | Off | Turn on when several Craft sites report into one GA4 property. |
 | Default period | Last 28 days | Also accepts a raw GA4 date such as `90daysAgo`. |
 | Path match type | Exact | Or *begins with* / *contains*, for section-wide roll-ups. |
@@ -99,11 +101,47 @@ Sites can each point at their own GA4 property (**Per-site property IDs**), or s
 property. If they share one, turn on **Filter by hostname** — otherwise `/about` on every site
 is the same page path and their numbers will be added together.
 
+When those properties live in different Google accounts — separate clients, separate Google
+Cloud projects — one credential will not read them all. Give the sites that differ their own:
+
+| Auth mode | Per-site setting | What stays shared |
+| --- | --- | --- |
+| Service account | **Per-site service accounts** | — |
+| OAuth refresh token | **Per-site refresh tokens** | The client ID and secret: one application, one consent screen. What differs is which Google account authorised it. |
+
+Leave a site blank and it uses the credential above, so the common case — one identity, several
+properties — stays a single field. Sites sharing a credential also share one access token and
+its refresh, rather than each holding its own.
+
+**Test connection** runs against one site at a time on a multi-site install; pick the site
+beside the button. `telescope/analytics/check --site=<handle>` does the same from the console.
+
+In `config/telescope.php`, both maps are keyed by site handle, just like `sitePropertyIds`:
+
+```php
+return [
+    '*' => [
+        'authMode' => 'oauth',
+        'clientId' => '$GOOGLE_ANALYTICS_CLIENT_ID',
+        'clientSecret' => '$GOOGLE_ANALYTICS_CLIENT_SECRET',
+        'refreshToken' => '$GOOGLE_ANALYTICS_REFRESH_TOKEN',
+        'propertyId' => '123456789',
+        'sitePropertyIds' => [
+            'shop' => '987654321',
+        ],
+        'siteRefreshTokens' => [
+            'shop' => '$GOOGLE_ANALYTICS_SHOP_REFRESH_TOKEN',
+        ],
+    ],
+];
+```
+
 ## Console commands
 
 ```bash
-# Verify credentials, property access and API connectivity
+# Verify credentials, property access and API connectivity — every site, or one
 php craft telescope/analytics/check
+php craft telescope/analytics/check --site=shop
 
 # One entry's report, by ID or by URL/path
 php craft telescope/analytics/show 1234

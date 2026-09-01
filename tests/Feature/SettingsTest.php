@@ -203,6 +203,95 @@ it('reports configuration per site', function() {
         ->and($settings->isConfigured('default'))->toBeFalse();
 });
 
+it('uses a per-site service account when one is set', function() {
+    $settings = configuredSettings(['siteCredentials' => ['shop' => '/etc/telescope/shop.json']]);
+
+    expect($settings->getCredentialsForSite('shop'))->toBe('/etc/telescope/shop.json')
+        ->and($settings->getCredentialsForSite('default'))->toBe($settings->getCredentials())
+        ->and($settings->getCredentialsForSite())->toBe($settings->getCredentials());
+});
+
+it('uses a per-site refresh token when one is set', function() {
+    $settings = settings([
+        'authMode' => Settings::AUTH_OAUTH,
+        'refreshToken' => 'default-token',
+        'siteRefreshTokens' => ['shop' => 'shop-token'],
+    ]);
+
+    expect($settings->getRefreshTokenForSite('shop'))->toBe('shop-token')
+        ->and($settings->getRefreshTokenForSite('default'))->toBe('default-token');
+});
+
+it('falls back to the default credential when a per-site override is blank', function() {
+    $settings = configuredSettings([
+        'siteCredentials' => ['shop' => '   '],
+        'siteRefreshTokens' => ['shop' => ''],
+        'refreshToken' => 'default-token',
+    ]);
+
+    expect($settings->getCredentialsForSite('shop'))->toBe($settings->getCredentials())
+        ->and($settings->getRefreshTokenForSite('shop'))->toBe('default-token');
+});
+
+it('reads per-site credentials from environment variables', function() {
+    putenv('TELESCOPE_TEST_SHOP_KEY=/etc/telescope/shop.json');
+    putenv('TELESCOPE_TEST_SHOP_TOKEN=shop-token');
+
+    $settings = configuredSettings([
+        'siteCredentials' => ['shop' => '$TELESCOPE_TEST_SHOP_KEY'],
+        'siteRefreshTokens' => ['shop' => '$TELESCOPE_TEST_SHOP_TOKEN'],
+    ]);
+
+    expect($settings->getCredentialsForSite('shop'))->toBe('/etc/telescope/shop.json')
+        ->and($settings->getRefreshTokenForSite('shop'))->toBe('shop-token');
+
+    putenv('TELESCOPE_TEST_SHOP_KEY');
+    putenv('TELESCOPE_TEST_SHOP_TOKEN');
+});
+
+it('is configured for a site that only has its own credentials', function() {
+    $settings = settings([
+        'propertyId' => '123456789',
+        'siteCredentials' => ['shop' => (string)json_encode(serviceAccountArray())],
+    ]);
+
+    expect($settings->isConfigured('shop'))->toBeTrue()
+        ->and($settings->isConfigured('default'))->toBeFalse();
+});
+
+it('is configured per site in OAuth mode when only a site has a token', function() {
+    $settings = settings([
+        'authMode' => Settings::AUTH_OAUTH,
+        'propertyId' => '123456789',
+        'clientId' => 'id',
+        'clientSecret' => 'secret',
+        'siteRefreshTokens' => ['shop' => 'shop-token'],
+    ]);
+
+    expect($settings->isConfigured('shop'))->toBeTrue()
+        ->and($settings->isConfigured('default'))->toBeFalse();
+});
+
+it('names the site whose service account key is unusable', function() {
+    $settings = configuredSettings(['siteCredentials' => ['shop' => '{"not":"a key"}']]);
+
+    expect($settings->validate())->toBeFalse()
+        ->and($settings->getFirstError('siteCredentials'))->toStartWith('shop: ');
+});
+
+it('ignores per-site service account keys in OAuth mode', function() {
+    $settings = settings([
+        'authMode' => Settings::AUTH_OAUTH,
+        'propertyId' => '123456789',
+        'clientId' => 'id',
+        'clientSecret' => 'secret',
+        'refreshToken' => 'refresh',
+        'siteCredentials' => ['shop' => '{"not":"a key"}'],
+    ]);
+
+    expect($settings->validate())->toBeTrue();
+});
+
 it('clamps limits and durations to usable values', function() {
     $settings = settings(['rowLimit' => 5000, 'widgetLimit' => 0, 'cacheDuration' => -30]);
 

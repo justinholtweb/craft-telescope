@@ -798,7 +798,10 @@
             output.className = 'js-telescope-test-result telescope-notice';
         }
 
-        Craft.sendActionRequest('POST', 'telescope/reports/test-connection')
+        var siteSelect = document.querySelector('.js-telescope-test-site');
+        var testData = siteSelect && siteSelect.value ? { siteId: siteSelect.value } : {};
+
+        Craft.sendActionRequest('POST', 'telescope/reports/test-connection', { data: testData })
             .then(function (response) {
                 var result = response.data || {};
                 render(result.ok, result.message, result.checks || []);

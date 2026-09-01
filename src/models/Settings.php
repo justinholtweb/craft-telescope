@@ -55,6 +55,27 @@ class Settings extends Model
     public array $sitePropertyIds = [];
 
     /**
+     * Per-site service account overrides, keyed by site handle.
+     *
+     * A multi-site install whose sites report into different GA4 accounts —
+     * separate clients, separate Google Cloud projects — needs a credential
+     * per site, not just a property ID per site.
+     *
+     * @var array<string, string>
+     */
+    public array $siteCredentials = [];
+
+    /**
+     * Per-site OAuth refresh token overrides, keyed by site handle.
+     *
+     * The OAuth *client* stays global: one application, one consent screen.
+     * What differs per site is which Google account authorised it.
+     *
+     * @var array<string, string>
+     */
+    public array $siteRefreshTokens = [];
+
+    /**
      * Add a `hostName` filter derived from each site's base URL.
      *
      * Required when several Craft sites report into one GA4 property, since
@@ -125,6 +146,8 @@ class Settings extends Model
             'refreshToken' => 'OAuth refresh token',
             'propertyId' => 'GA4 property ID',
             'sitePropertyIds' => 'Per-site property IDs',
+            'siteCredentials' => 'Per-site service accounts',
+            'siteRefreshTokens' => 'Per-site refresh tokens',
             'filterByHostname' => 'Filter by hostname',
             'cacheDuration' => 'Cache duration',
             'defaultPeriod' => 'Default period',
@@ -159,9 +182,10 @@ class Settings extends Model
             // a fresh install has to be able to save its other settings before
             // anyone has been to Google Cloud to make a key.
             [['credentials'], 'validateCredentials'],
+            [['siteCredentials'], 'validateSiteCredentials'],
             [['credentials', 'clientId', 'clientSecret', 'refreshToken', 'propertyId'], 'string'],
             [['filterByHostname', 'includeQueryString', 'autoAttachToEntries'], 'boolean'],
-            [['sitePropertyIds', 'sections', 'autoAttachSections'], 'safe'],
+            [['sitePropertyIds', 'siteCredentials', 'siteRefreshTokens', 'sections', 'autoAttachSections'], 'safe'],
         ];
     }
 
@@ -196,6 +220,31 @@ class Settings extends Model
             ServiceAccountCredentials::resolve($value);
         } catch (AuthException $e) {
             $this->addError($attribute, $e->getMessage());
+        }
+    }
+
+    /**
+     * The same check for every per-site key, named so the editor knows which
+     * site is at fault rather than being told "the credentials" are bad.
+     */
+    public function validateSiteCredentials(string $attribute): void
+    {
+        if ($this->authMode !== self::AUTH_SERVICE_ACCOUNT) {
+            return;
+        }
+
+        foreach ($this->siteCredentials as $siteHandle => $credentials) {
+            $value = trim((string)App::parseEnv((string)$credentials));
+
+            if ($value === '') {
+                continue;
+            }
+
+            try {
+                ServiceAccountCredentials::resolve($value);
+            } catch (AuthException $e) {
+                $this->addError($attribute, "{$siteHandle}: {$e->getMessage()}");
+            }
         }
     }
 
@@ -248,15 +297,26 @@ class Settings extends Model
      */
     public function getPropertyIdForSite(?string $siteHandle = null): string
     {
-        if ($siteHandle !== null && isset($this->sitePropertyIds[$siteHandle])) {
-            $override = trim((string)App::parseEnv((string)$this->sitePropertyIds[$siteHandle]));
+        $value = $this->siteOverride($this->sitePropertyIds, $siteHandle)
+            ?? trim((string)App::parseEnv($this->propertyId));
 
-            if ($override !== '') {
-                return Client::normalizePropertyId($override);
-            }
-        }
+        return Client::normalizePropertyId($value);
+    }
 
-        return Client::normalizePropertyId(trim((string)App::parseEnv($this->propertyId)));
+    /**
+     * The service account to use for a site, falling back to the default.
+     */
+    public function getCredentialsForSite(?string $siteHandle = null): string
+    {
+        return $this->siteOverride($this->siteCredentials, $siteHandle) ?? $this->getCredentials();
+    }
+
+    /**
+     * The refresh token to use for a site, falling back to the default.
+     */
+    public function getRefreshTokenForSite(?string $siteHandle = null): string
+    {
+        return $this->siteOverride($this->siteRefreshTokens, $siteHandle) ?? $this->getRefreshToken();
     }
 
     /**
@@ -269,8 +329,28 @@ class Settings extends Model
         }
 
         return $this->authMode === self::AUTH_SERVICE_ACCOUNT
-            ? $this->getCredentials() !== ''
-            : $this->getClientId() !== '' && $this->getClientSecret() !== '' && $this->getRefreshToken() !== '';
+            ? $this->getCredentialsForSite($siteHandle) !== ''
+            : $this->getClientId() !== ''
+                && $this->getClientSecret() !== ''
+                && $this->getRefreshTokenForSite($siteHandle) !== '';
+    }
+
+    /**
+     * A site's override from one of the per-site maps, or null when it has
+     * none. A key that is present but blank counts as "no override", so
+     * clearing a field in the CP falls back rather than breaking the site.
+     *
+     * @param array<string, mixed> $overrides
+     */
+    private function siteOverride(array $overrides, ?string $siteHandle): ?string
+    {
+        if ($siteHandle === null || !isset($overrides[$siteHandle])) {
+            return null;
+        }
+
+        $value = trim((string)App::parseEnv((string)$overrides[$siteHandle]));
+
+        return $value !== '' ? $value : null;
     }
 
     /**

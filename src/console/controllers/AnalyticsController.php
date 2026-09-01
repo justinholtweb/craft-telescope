@@ -8,6 +8,7 @@ use Craft;
 use craft\console\Controller;
 use craft\elements\Entry;
 use craft\helpers\Console;
+use craft\models\Site;
 use justinholtweb\telescope\ga4\Period;
 use justinholtweb\telescope\helpers\Format;
 use justinholtweb\telescope\Plugin;
@@ -43,6 +44,7 @@ class AnalyticsController extends Controller
         $options = parent::options($actionID);
 
         return match ($actionID) {
+            'check' => [...$options, 'site'],
             'show' => [...$options, 'period', 'site'],
             'top-pages', 'warm' => [...$options, 'period', 'site', 'limit'],
             default => $options,
@@ -51,24 +53,60 @@ class AnalyticsController extends Controller
 
     /**
      * Check that credentials, the property ID and API access all work.
+     *
+     * Sites can have their own credentials and their own property, so with no
+     * `--site` this checks every one of them: a single verdict for the primary
+     * site would hide a second site whose Google account has lost access.
      */
     public function actionCheck(): int
     {
-        $status = $this->analytics()->testConnection($this->siteId());
+        $sites = $this->sitesToCheck();
+        $failed = false;
 
-        foreach ($status->checks as $check) {
-            $this->stdout("  ✓ {$check}\n", Console::FG_GREEN);
+        foreach ($sites as $site) {
+            if (count($sites) > 1) {
+                $this->stdout("\n{$site->name}\n", Console::FG_YELLOW);
+            }
+
+            $status = $this->analytics()->testConnection($site->id);
+
+            foreach ($status->checks as $check) {
+                $this->stdout("  ✓ {$check}\n", Console::FG_GREEN);
+            }
+
+            if (!$status->ok) {
+                $failed = true;
+                $this->stderr("\n✗ {$status->message}\n", Console::FG_RED);
+
+                continue;
+            }
+
+            $this->stdout("\n✓ {$status->message}\n", Console::FG_GREEN);
         }
 
-        if (!$status->ok) {
-            $this->stderr("\n✗ {$status->message}\n\n", Console::FG_RED);
+        $this->stdout("\n");
 
-            return ExitCode::UNSPECIFIED_ERROR;
+        return $failed ? ExitCode::UNSPECIFIED_ERROR : ExitCode::OK;
+    }
+
+    /**
+     * The sites `check` should run against: the one named by `--site`, or all
+     * of them.
+     *
+     * @return list<Site>
+     */
+    private function sitesToCheck(): array
+    {
+        $sites = Craft::$app->getSites();
+        $siteId = $this->siteId();
+
+        if ($siteId !== null) {
+            $site = $sites->getSiteById($siteId);
+
+            return $site !== null ? [$site] : [];
         }
 
-        $this->stdout("\n✓ {$status->message}\n\n", Console::FG_GREEN);
-
-        return ExitCode::OK;
+        return array_values($sites->getAllSites());
     }
 
     /**

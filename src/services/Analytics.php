@@ -218,7 +218,7 @@ class Analytics extends Component
         $checks[] = "Property ID: {$propertyId}";
 
         try {
-            $provider = $this->createTokenProvider($settings);
+            $provider = $this->createTokenProvider($settings, $site);
             $token = $provider->getToken();
             $checks[] = 'Access token obtained (' . $token->secondsRemaining(time()) . 's remaining)';
         } catch (AuthException $e) {
@@ -255,7 +255,7 @@ class Analytics extends Component
         }
 
         try {
-            $provider = $this->createTokenProvider($settings);
+            $provider = $this->createTokenProvider($settings, $site);
         } catch (AuthException $e) {
             Craft::error("Telescope could not build credentials: {$e->getMessage()}", __METHOD__);
 
@@ -295,12 +295,21 @@ class Analytics extends Component
     }
 
     /**
+     * The token provider for a site.
+     *
+     * Providers are memoised by the credential they were built from, not by
+     * site, so sites sharing a credential also share one access token and its
+     * refresh — while a site with its own service account or refresh token
+     * gets its own.
+     *
      * @throws AuthException
      */
-    public function createTokenProvider(?Settings $settings = null): TokenProviderInterface
+    public function createTokenProvider(?Settings $settings = null, ?Site $site = null): TokenProviderInterface
     {
         $settings ??= $this->getSettings();
-        $signature = $settings->authMode . '|' . sha1($settings->getCredentials() . $settings->getRefreshToken());
+        $credentials = $settings->getCredentialsForSite($site?->handle);
+        $refreshToken = $settings->getRefreshTokenForSite($site?->handle);
+        $signature = $settings->authMode . '|' . sha1($credentials . $refreshToken);
 
         if (isset($this->tokenProviders[$signature])) {
             return $this->tokenProviders[$signature];
@@ -310,11 +319,11 @@ class Analytics extends Component
             ? new RefreshTokenProvider(
                 $settings->getClientId(),
                 $settings->getClientSecret(),
-                $settings->getRefreshToken(),
+                $refreshToken,
                 $this->getHttpClient(),
             )
             : new ServiceAccountTokenProvider(
-                ServiceAccountCredentials::resolve($settings->getCredentials()),
+                ServiceAccountCredentials::resolve($credentials),
                 $this->getHttpClient(),
             );
 

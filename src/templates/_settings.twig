@@ -34,6 +34,30 @@
         value: settings.credentials,
         errors: settings.getErrors('credentials'),
     }) }}
+
+    {% if craft.app.isMultiSite %}
+        <div class="field">
+            <div class="heading">
+                <label>{{ 'Per-site service accounts'|t('telescope') }}</label>
+                <div class="instructions">
+                    <p>{{ 'For sites reporting into a different GA4 account. Leave a site blank to use the service account above.'|t('telescope') }}</p>
+                </div>
+            </div>
+            <div class="input">
+                {% for site in craft.app.sites.getAllSites() %}
+                    {{ forms.autosuggest({
+                        id: 'siteCredentials-' ~ site.handle,
+                        name: 'siteCredentials[' ~ site.handle ~ ']',
+                        placeholder: site.name,
+                        suggestEnvVars: true,
+                        value: settings.siteCredentials[site.handle] ?? '',
+                    }) }}
+                    <div class="light smalltext" style="margin: 2px 0 10px;">{{ site.name }}</div>
+                {% endfor %}
+                {{ forms.errorList(settings.getErrors('siteCredentials')) }}
+            </div>
+        </div>
+    {% endif %}
 </div>
 
 <div id="auth-oauth" class="{{ isServiceAccount ? 'hidden' : '' }}">
@@ -63,6 +87,29 @@
         value: settings.refreshToken,
         errors: settings.getErrors('refreshToken'),
     }) }}
+
+    {% if craft.app.isMultiSite %}
+        <div class="field">
+            <div class="heading">
+                <label>{{ 'Per-site refresh tokens'|t('telescope') }}</label>
+                <div class="instructions">
+                    <p>{{ 'For sites authorised by a different Google account. The client ID and secret above are shared. Leave a site blank to use the refresh token above.'|t('telescope') }}</p>
+                </div>
+            </div>
+            <div class="input">
+                {% for site in craft.app.sites.getAllSites() %}
+                    {{ forms.autosuggest({
+                        id: 'siteRefreshTokens-' ~ site.handle,
+                        name: 'siteRefreshTokens[' ~ site.handle ~ ']',
+                        placeholder: site.name,
+                        suggestEnvVars: true,
+                        value: settings.siteRefreshTokens[site.handle] ?? '',
+                    }) }}
+                    <div class="light smalltext" style="margin: 2px 0 10px;">{{ site.name }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
 </div>
 
 {{ forms.autosuggestField({
@@ -108,10 +155,19 @@
 {% endif %}
 
 <div class="field">
-    <div class="input">
+    <div class="input flex">
         <button type="button" class="btn js-telescope-test">{{ 'Test connection'|t('telescope') }}</button>
-        <div class="js-telescope-test-result" style="margin-top: 10px;"></div>
+        {% if craft.app.isMultiSite %}
+            {# Each site can have its own credentials and property, so the test
+               has to be per site rather than a single global verdict. #}
+            <select class="js-telescope-test-site">
+                {% for site in craft.app.sites.getAllSites() %}
+                    <option value="{{ site.id }}">{{ site.name }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
     </div>
+    <div class="js-telescope-test-result" style="margin-top: 10px;"></div>
 </div>
 
 <hr>

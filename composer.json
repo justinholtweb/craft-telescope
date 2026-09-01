@@ -2,7 +2,7 @@
     "name": "justinholtweb/craft-telescope",
     "description": "Per-entry Google Analytics 4 reporting inside the Craft control panel — page views, visitors, sessions, timeline, geography, traffic sources and user journey for any entry with a public URL.",
     "type": "craft-plugin",
-    "version": "5.1.0",
+    "version": "5.2.0",
     "keywords": [
         "craft",
         "cms",
