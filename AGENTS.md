@@ -44,11 +44,13 @@ src/
 │   ├── ReportResponse.php           # Name-based access to rows
 │   └── Period.php                   # Date ranges + presets
 ├── reports/
-│   ├── ReportBuilder.php            # Six requests → one PageReport
-│   ├── PageReport.php               # The whole report, array-serialisable
+│   ├── ReportBuilder.php            # Six requests → a PageReport; seven → a SiteReport
+│   ├── PageReport.php               # One page's report, array-serialisable
+│   ├── SiteReport.php               # The property-wide dashboard, array-serialisable
 │   ├── PageMetrics.php              # Overview totals + display cards
 │   ├── ReportOptions.php            # Match type, hostname, limits, sections
-│   └── ReportSection.php            # Section handles + normalisation
+│   ├── ReportSection.php            # Page-report section handles + normalisation
+│   └── DashboardSection.php         # Dashboard panel handles + normalisation
 ├── helpers/
 │   ├── PathHelper.php               # URL → GA4 pagePath; referrer classification
 │   ├── Chart.php                    # Server-rendered SVG line chart
@@ -78,8 +80,12 @@ src/
   plus a message. `PageReport::withErrors()` and the `describeFailures()` collapsing in
   `ReportBuilder` exist for exactly this.
 - **Auth failures short-circuit.** Bad credentials fail every section identically, so
-  `ReportBuilder::build()` stops at the first `AuthException` rather than making five more
-  doomed round trips.
+  `ReportBuilder::build()` and `buildSiteReport()` stop at the first `AuthException` rather than
+  making the remaining doomed round trips.
+- **Page-level and site-level are separate.** `ReportSection` scopes one page's report,
+  `DashboardSection` the property-wide dashboard. They overlap in name only — the dashboard's
+  "sources" panel is unfiltered, the page report's is filtered to one path — and they are toggled
+  independently because they are paid for on different screens.
 - **Only clean reports are cached.** Caching a failure would keep an error on screen for the
   whole cache window after it was fixed.
 - **Settings are never *required*.** A fresh install must be able to save its other settings
@@ -93,7 +99,9 @@ Pest, split into two suites:
 
 - `tests/Unit` — plain PHP, no Craft, no application.
 - `tests/Feature` — exercises Craft base classes (the settings model) that work without a booted
-  app. `tests/bootstrap.php` requires Yii's `Yii.php` by hand so validators can be instantiated.
+  app, plus the shipped templates and asset bundles. `tests/bootstrap.php` requires Yii's
+  `Yii.php` by hand so validators can be instantiated. `TemplateSyntaxTest` parses every `.twig`
+  file with Craft's filters stubbed — syntax only, since no test here renders a screen.
 
 Helpers live in `tests/Support`: `FakeHttpClient` scripts responses and records requests;
 `Ga4` builds realistic Data API payloads. `tests/Pest.php` provides `fakeClient()`,
@@ -108,6 +116,16 @@ composer ecs       # add --fix to apply
 
 ## Gotchas worth remembering
 
+- **`forms.select` puts your `class` on the wrapper, not the `<select>`.** Craft's macro merges a
+  passed `class` into the containing `<div class="select">`. A JS hook given that way never
+  reaches the element a delegated `change` listener sees, and the control silently does nothing —
+  this is exactly how the site and period switchers shipped inert. Pass hooks via
+  `inputAttributes: { class: [...] }`, and have listeners `closest()` up to the hook so either
+  placement works.
+- **A Twig comment inside an expression is a parse error.** `{# … #}` between the braces of a hash
+  literal — say, inside a `forms.select({ … })` call — fails with `Unclosed "{"` and takes the
+  whole screen down. Put the comment above the statement. `tests/Feature/TemplateSyntaxTest.php`
+  parses every template so this cannot ship again.
 - **Trailing slashes kill exact matches.** GA4 records `/about`; a Craft URL may end in `/`.
   `PathHelper::normalize()` is the single place this is handled.
 - **`preserveAspectRatio="none"` stretches SVG text** along with the plot. The chart must scale

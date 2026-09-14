@@ -17,7 +17,7 @@ that entry's URL.
 | --- | --- |
 | **Analytics field** | A full report — overview cards, a timeline chart, and breakdowns by location, traffic source, referring page and landing page — anywhere you add it to a field layout. |
 | **Entry sidebar** | An optional compact summary on every entry, with no field layout changes at all. |
-| **Telescope section** | The property's most-viewed pages, filterable by site and period. |
+| **Telescope dashboard** | Site-wide totals, a traffic-over-time chart, and breakdowns by source, device, country and browser — plus the most-viewed pages. Filterable by site and period. |
 | **Dashboard widget** | "Top pages" on the Craft dashboard. |
 | **Download PDF** | One click, built in the browser — chart included. |
 | **Print view** | A clean, standalone report page, with no JavaScript involved. |
@@ -210,12 +210,13 @@ The report screens load five pinned libraries from jsDelivr:
 
 | Library | Used for |
 | --- | --- |
-| Chart.js 4.4.0 | The timeline chart |
-| Hammer.js 2.0.8 + chartjs-plugin-zoom 2.0.1 | Drag, scroll and pinch zooming on that chart |
+| Chart.js 4.4.0 | The timeline chart, and the dashboard's breakdown charts |
+| Hammer.js 2.0.8 + chartjs-plugin-zoom 2.0.1 | Drag, scroll and pinch zooming on the timeline chart |
 | html2canvas 1.4.1 + jsPDF 2.5.1 | The **Download PDF** button |
 
-They load only on screens that actually draw a full report, so an entry showing just the compact
-sidebar panel does not pay for them. Nothing is loaded on the front end.
+They load only on screens that actually draw charts — the dashboard, an entry's report, the
+Analytics field — so an entry showing just the compact sidebar panel does not pay for them.
+Nothing is loaded on the front end.
 
 If your control panel runs under a content security policy that forbids third-party scripts, or
 it has to work offline, use the **Print** view instead: it renders the same report — chart
@@ -223,10 +224,11 @@ included, as server-generated SVG — with no JavaScript at all.
 
 ## Caching and quota
 
-Every report section is a separate Data API call, so a full report costs six. Reports are cached
-for ten minutes by default and served from cache thereafter; failures are never cached, so
-fixing a credential problem takes effect immediately. On a busy site, run
-`telescope/analytics/warm` from cron and lower the number of enabled sections.
+Every report section is a separate Data API call, so a full page report costs six and the
+dashboard costs seven. Both are cached for ten minutes by default and served from cache
+thereafter; failures are never cached, so fixing a credential problem takes effect immediately.
+On a busy site, run `telescope/analytics/warm` from cron, and trim **Report sections** and
+**Dashboard panels** to what you actually read.
 
 ## Troubleshooting
 
