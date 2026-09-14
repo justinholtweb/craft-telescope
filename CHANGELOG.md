@@ -1,5 +1,16 @@
 # Release Notes for Telescope
 
+## 5.3.1 - 2026-09-14
+
+### Changed
+
+- Documentation caught up with 5.3.0: the README described the Telescope screen as a top-pages
+  table, scoped Chart.js to the timeline chart alone, and costed a full report at six API calls
+  without mentioning the dashboard's seven.
+- The English translation catalogue gained the eleven strings the dashboard added. Craft falls
+  back to the source string when one is absent, so nothing rendered wrong — this is about sites
+  being able to override them.
+
 ## 5.3.0 - 2026-09-14
 
 ### Added
