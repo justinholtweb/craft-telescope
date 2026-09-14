@@ -13,7 +13,7 @@
         {{ forms.select({
             id: 'period',
             name: 'period',
-            class: 'js-telescope-period',
+            inputAttributes: { class: ['js-telescope-period'] },
             options: periodOptions,
             value: period.handle ?? '',
         }) }}

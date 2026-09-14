@@ -1,0 +1,56 @@
+{# One dashboard panel: a chart plus the rows it was drawn from.
+
+   The chart is Chart.js, configured from the JSON block below rather than an
+   inline <script> — nothing inline runs when Craft swaps this markup into a
+   slideout or a refreshed panel.
+
+   The table stays regardless: a doughnut is a shape, and an editor reading a
+   report wants the number. #}
+
+{% set chart = chart ?? 'bars' %}
+{% set metricKey = metricKey ?? 'sessions' %}
+
+<div class="telescope-section telescope-panel">
+    <h3>{{ heading }}</h3>
+
+    {% if chart == 'doughnut' %}
+        <div class="telescope-chart-wrap telescope-doughnut-wrap">
+            <canvas class="js-telescope-breakdown"
+                    data-chart-type="doughnut"
+                    data-metric-label="{{ metricLabel }}"></canvas>
+        </div>
+        <script type="application/json" class="js-telescope-breakdown-data">{{ rows|json_encode|raw }}</script>
+        <p class="telescope-hint">{{ 'Shares are of the rows shown, not the whole property.'|t('telescope') }}</p>
+    {% endif %}
+
+    <table class="telescope-table telescope-breakdown">
+        <thead>
+            <tr>
+                <th>{{ heading }}</th>
+                <th class="telescope-numeric">{{ metricLabel }}</th>
+                <th class="telescope-numeric">{{ 'Share'|t('telescope') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>
+                        {% if chart == 'bars' %}
+                            {# The bar is the chart: a full row of them is easier to
+                               scan than a second canvas, and it prints. #}
+                            <span class="telescope-bar" style="--telescope-bar-share: {{ row.share }}%;">
+                                <span class="telescope-bar-fill"></span>
+                                <span class="telescope-bar-label telescope-truncate" title="{{ row.label }}">{{ row.label }}</span>
+                            </span>
+                        {% else %}
+                            <span class="telescope-swatch" data-index="{{ loop.index0 }}"></span>
+                            <span class="telescope-truncate" title="{{ row.label }}">{{ row.label }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="telescope-numeric">{{ attribute(row, metricKey)|number_format }}</td>
+                    <td class="telescope-numeric telescope-muted">{{ row.share }}%</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -66,6 +66,20 @@ If you already have an OAuth client and refresh token for the Analytics API, swi
 refresh token. A service account is the better default; this exists so an existing set of
 credentials does not have to be thrown away.
 
+## The dashboard
+
+**Telescope** in the control panel sidebar opens a site-wide dashboard for the selected site and
+period: headline totals (views, visitors, new visitors, sessions, average session, engagement and
+bounce), a zoomable traffic-over-time chart, breakdowns of traffic sources, devices, top countries
+and browsers, and the most-viewed pages.
+
+Each panel is one GA4 API call, so the whole screen is seven calls, cached for **Cache duration**.
+Panels can be switched off individually under **Dashboard panels** — see [Settings](#settings).
+
+Share percentages on the breakdown panels are shares *of the rows shown*, not of the whole
+property: those reports are capped at **Table rows**, so a long tail is excluded rather than
+silently folded into the visible rows.
+
 ## Showing reports to editors
 
 **As a field.** Create a new field of type **Analytics** and add it to any entry type's field
@@ -91,7 +105,8 @@ Either way, an editor needs the **View analytics reports** permission.
 | Path match type | Exact | Or *begins with* / *contains*, for section-wide roll-ups. |
 | Include query strings | Off | Off means `/blog?page=2` counts towards `/blog`. |
 | Report sections | All six | Each section is one API call — switch off what you don't need. |
-| Table rows | 10 | Rows in each breakdown table. |
+| Dashboard panels | All five | Which panels the dashboard draws. Each is a further API call on that screen. |
+| Table rows | 10 | Rows in each breakdown table, and in the dashboard's panels. |
 | Cache duration | 600s | Reports are cached; the Data API is rate limited. |
 | Widget rows | 10 | Pages listed in the dashboard widget. |
 

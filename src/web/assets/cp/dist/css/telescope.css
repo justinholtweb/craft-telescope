@@ -69,6 +69,90 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Dashboard panels
+   ========================================================================== */
+
+.telescope-panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.telescope-panel {
+    margin-bottom: 0;
+    padding: 14px 16px;
+    border: 1px solid var(--hairline-color);
+    border-radius: var(--large-border-radius, 8px);
+}
+
+/* Chart.js sizes from the parent, so the doughnut's box needs a height. */
+.telescope-doughnut-wrap {
+    height: 190px;
+    margin-bottom: 10px;
+    padding: 8px;
+}
+
+.telescope-breakdown {
+    width: 100%;
+}
+
+.telescope-breakdown td,
+.telescope-breakdown th {
+    padding: 5px 6px;
+}
+
+.telescope-muted {
+    color: var(--medium-text-color);
+}
+
+/* The swatch that ties a doughnut slice to its table row. The palette repeats
+   after ten, exactly as PALETTE does in telescope.js. */
+.telescope-swatch {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 7px;
+    border-radius: 2px;
+    vertical-align: baseline;
+    background: var(--medium-text-color);
+}
+
+.telescope-swatch[data-index="0"] { background: #2563eb; }
+.telescope-swatch[data-index="1"] { background: #0d9488; }
+.telescope-swatch[data-index="2"] { background: #d97706; }
+.telescope-swatch[data-index="3"] { background: #7c3aed; }
+.telescope-swatch[data-index="4"] { background: #db2777; }
+.telescope-swatch[data-index="5"] { background: #0891b2; }
+.telescope-swatch[data-index="6"] { background: #65a30d; }
+.telescope-swatch[data-index="7"] { background: #dc2626; }
+.telescope-swatch[data-index="8"] { background: #4f46e5; }
+.telescope-swatch[data-index="9"] { background: #ca8a04; }
+
+/* Inline bars — the chart for panels where a ranked list reads better than a
+   doughnut, and the only one that survives into the print view. */
+.telescope-bar {
+    position: relative;
+    display: block;
+    min-width: 0;
+    padding: 3px 6px;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.telescope-bar-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--telescope-bar-share, 0%);
+    background: var(--telescope-views);
+    opacity: 0.16;
+}
+
+.telescope-bar-label {
+    position: relative;
+    display: block;
+}
+
 /* Chart
    ========================================================================== */
 
@@ -348,7 +432,8 @@
         break-inside: avoid;
     }
 
-    .telescope-grid {
+    .telescope-grid,
+    .telescope-panels {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 20px 28px;
     }

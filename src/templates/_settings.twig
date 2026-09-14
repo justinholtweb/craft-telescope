@@ -229,6 +229,21 @@
     values: settings.sections,
 }) }}
 
+{{ forms.checkboxSelectField({
+    label: 'Dashboard panels'|t('telescope'),
+    instructions: 'Which panels the Telescope dashboard draws. Each one is a further API call on that screen, cached for the duration below.'|t('telescope'),
+    id: 'dashboardSections',
+    name: 'dashboardSections',
+    options: dashboardSectionOptions ?? {
+        timeline: 'Traffic over time'|t('telescope'),
+        sources: 'Traffic sources'|t('telescope'),
+        geography: 'Top countries'|t('telescope'),
+        devices: 'Devices'|t('telescope'),
+        browsers: 'Browsers'|t('telescope'),
+    },
+    values: settings.dashboardSections,
+}) }}
+
 {{ forms.textField({
     label: 'Table rows'|t('telescope'),
     instructions: 'Rows shown in each breakdown table.'|t('telescope'),

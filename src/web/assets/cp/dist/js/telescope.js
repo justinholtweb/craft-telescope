@@ -22,6 +22,14 @@
     var COLOR_VIEWS = '#2563eb';
     var COLOR_USERS = '#0d9488';
 
+    // The dashboard's categorical palette. Kept in step with the
+    // .telescope-swatch rules in telescope.css so the table's swatches and the
+    // doughnut agree on which slice is which.
+    var PALETTE = [
+        '#2563eb', '#0d9488', '#d97706', '#7c3aed', '#db2777',
+        '#0891b2', '#65a30d', '#dc2626', '#4f46e5', '#ca8a04'
+    ];
+
     /* ---------------------------------------------------------------------
      * Timeline chart
      * ------------------------------------------------------------------ */
@@ -155,6 +163,77 @@
         }
     }
 
+    /* ---------------------------------------------------------------------
+     * Dashboard breakdown charts
+     *
+     * One canvas per panel, configured from the sibling JSON block. The rows
+     * already carry their share of the total — computed server-side so the
+     * print view and the table agree with the chart.
+     * ------------------------------------------------------------------ */
+
+    function initBreakdown(canvas) {
+        if (canvas.__telescopeChart || typeof Chart === 'undefined') {
+            return;
+        }
+
+        var panel = canvas.closest('.telescope-section');
+        var dataScript = panel && panel.querySelector('.js-telescope-breakdown-data');
+
+        if (!dataScript) {
+            return;
+        }
+
+        var rows;
+
+        try {
+            rows = JSON.parse(dataScript.textContent);
+        } catch (e) {
+            return;
+        }
+
+        if (!rows || !rows.length) {
+            return;
+        }
+
+        var metricLabel = canvas.getAttribute('data-metric-label') || '';
+        var colors = rows.map(function (row, index) {
+            return PALETTE[index % PALETTE.length];
+        });
+
+        canvas.__telescopeChart = new Chart(canvas, {
+            type: canvas.getAttribute('data-chart-type') || 'doughnut',
+            data: {
+                labels: rows.map(function (row) { return row.label; }),
+                datasets: [{
+                    label: metricLabel,
+                    // `share` is a percentage of the rows shown; plotting it
+                    // rather than the raw metric keeps the slices honest about
+                    // what the panel actually covers.
+                    data: rows.map(function (row) { return row.share; }),
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '58%',
+                animation: { duration: 250 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     /**
      * Draw any chart that has appeared and is not yet initialised.
      */
@@ -164,6 +243,12 @@
 
         for (var i = 0; i < canvases.length; i++) {
             initChart(canvases[i]);
+        }
+
+        var breakdowns = scope.querySelectorAll('.js-telescope-breakdown');
+
+        for (var k = 0; k < breakdowns.length; k++) {
+            initBreakdown(breakdowns[k]);
         }
     }
 
@@ -710,19 +795,21 @@
     document.addEventListener('change', function (event) {
         var select = event.target;
 
-        if (!select.classList) {
+        if (!select || select.tagName !== 'SELECT' || !select.closest) {
             return;
         }
 
-        var param = select.classList.contains('js-telescope-period') ? 'period'
-            : select.classList.contains('js-telescope-site') ? 'siteId'
-                : null;
+        // Craft's forms.select macro applies a passed `class` to the wrapping
+        // <div class="select">, not to the <select>, so match either element.
+        var hook = select.closest('.js-telescope-period, .js-telescope-site');
 
-        if (!param) {
+        if (!hook) {
             return;
         }
 
+        var param = hook.classList.contains('js-telescope-period') ? 'period' : 'siteId';
         var url = new URL(window.location.href);
+
         url.searchParams.set(param, select.value);
         window.location.href = url.toString();
     });

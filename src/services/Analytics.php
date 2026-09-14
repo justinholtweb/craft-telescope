@@ -27,6 +27,7 @@ use justinholtweb\telescope\reports\PageReport;
 use justinholtweb\telescope\reports\ReportBuilder;
 use justinholtweb\telescope\reports\ReportOptions;
 use justinholtweb\telescope\reports\ReportSection;
+use justinholtweb\telescope\reports\SiteReport;
 use yii\caching\CacheInterface;
 use yii\caching\TagDependency;
 
@@ -190,6 +191,67 @@ class Analytics extends Component
         }
 
         return $pages;
+    }
+
+    /**
+     * The site-wide dashboard report.
+     *
+     * Cached like everything else: seven API calls is not something to repeat
+     * on every page load of the overview screen.
+     */
+    public function getSiteReport(
+        ?int $siteId = null,
+        ?Period $period = null,
+        bool $useCache = true,
+    ): SiteReport {
+        $settings = $this->getSettings();
+        $period ??= $settings->getDefaultPeriod();
+        $site = $this->resolveSite($siteId);
+        $sections = $settings->getDashboardSections();
+        $limit = $settings->getRowLimit();
+
+        $cacheKey = self::CACHE_KEY_PREFIX . 'site:' . implode(':', [
+            $site->id,
+            $period->cacheKey(),
+            $limit,
+            substr(sha1((string)json_encode($sections)), 0, 10),
+        ]);
+        $cache = $this->getCache();
+
+        if ($useCache && $settings->getCacheDuration() > 0) {
+            $cached = $cache->get($cacheKey);
+
+            if (is_array($cached)) {
+                return SiteReport::fromArray($cached);
+            }
+        }
+
+        $builder = $this->createBuilder($site);
+
+        if ($builder === null) {
+            return SiteReport::empty($period->label)
+                ->withErrors(['Telescope is not configured yet — add your Google credentials and GA4 property ID in the plugin settings.']);
+        }
+
+        try {
+            $report = $builder->buildSiteReport($period, $limit, $sections);
+        } catch (TelescopeException $e) {
+            Craft::error("Telescope site report failed: {$e->getMessage()}", __METHOD__);
+
+            return SiteReport::empty($period->label)->withErrors([$e->getMessage()]);
+        }
+
+        // Same rule as the page report: never cache a partial failure.
+        if ($settings->getCacheDuration() > 0 && !$report->hasErrors()) {
+            $cache->set(
+                $cacheKey,
+                $report->toArray(),
+                $settings->getCacheDuration(),
+                new TagDependency(['tags' => [self::CACHE_TAG]]),
+            );
+        }
+
+        return $report;
     }
 
     /**

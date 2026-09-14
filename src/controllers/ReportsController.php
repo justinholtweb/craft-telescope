@@ -11,7 +11,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use justinholtweb\telescope\ga4\Period;
 use justinholtweb\telescope\Plugin;
-use justinholtweb\telescope\web\assets\cp\TelescopeAsset;
+use justinholtweb\telescope\reports\SiteReport;
 use justinholtweb\telescope\web\assets\cp\TelescopeReportAsset;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
@@ -35,7 +35,8 @@ class ReportsController extends Controller
     }
 
     /**
-     * The property-wide overview: top pages for the selected site and period.
+     * The site-wide dashboard: totals, charts and top pages for the selected
+     * site and period.
      */
     public function actionOverview(): Response
     {
@@ -44,15 +45,21 @@ class ReportsController extends Controller
         $siteId = $this->resolveSiteId($request->getParam('siteId'));
         $plugin = $this->plugin();
 
-        $this->view->registerAssetBundle(TelescopeAsset::class);
+        $isConfigured = $plugin->getSettings()->isConfigured();
+
+        // The dashboard draws charts, so it needs Chart.js — the compact bundle
+        // does not carry it.
+        $this->view->registerAssetBundle(TelescopeReportAsset::class);
 
         return $this->renderTemplate('telescope/overview', [
-            'pages' => $plugin->getSettings()->isConfigured() ? $plugin->getAnalytics()->getTopPages($siteId, $period) : [],
+            'report' => $isConfigured
+                ? $plugin->getAnalytics()->getSiteReport($siteId, $period)
+                : SiteReport::empty($period->label),
             'period' => $period,
             'periodOptions' => Period::presetOptions(),
             'siteId' => $siteId,
             'sites' => Craft::$app->getSites()->getEditableSites(),
-            'isConfigured' => $plugin->getSettings()->isConfigured(),
+            'isConfigured' => $isConfigured,
         ]);
     }
 

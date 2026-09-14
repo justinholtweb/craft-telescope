@@ -1,5 +1,26 @@
 # Release Notes for Telescope
 
+## 5.3.0 - 2026-09-14
+
+### Added
+
+- **A graphical dashboard.** The Telescope control panel screen was a top-pages table; it is now a
+  site-wide dashboard — headline totals, a zoomable traffic-over-time chart, and breakdown panels
+  for traffic sources, devices, top countries and browsers, with the top-pages table below.
+- **Dashboard panels** setting. Each panel is one API call, so the optional ones can be switched
+  off the same way report sections already could.
+- `Analytics::getSiteReport()`, `ReportBuilder::buildSiteReport()` and the `SiteReport` model:
+  the property-wide counterpart to the existing per-page report, cached the same way and with the
+  same per-panel failure handling — a quota error on one panel no longer blanks the screen.
+
+### Fixed
+
+- **The site and period dropdowns did nothing.** Craft's `forms.select` macro applies a passed
+  `class` to the wrapping `<div class="select">` rather than to the `<select>`, so the JS hooks
+  the change listener looks for never reached the element it sees. Both switchers, on the
+  dashboard and on an entry's report, were inert. The hooks now go on the `<select>` via
+  `inputAttributes`, and the listener matches either element.
+
 ## 5.2.0 - 2026-09-01
 
 ### Added

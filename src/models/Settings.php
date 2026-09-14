@@ -11,6 +11,7 @@ use justinholtweb\telescope\errors\AuthException;
 use justinholtweb\telescope\ga4\Client;
 use justinholtweb\telescope\ga4\Period;
 use justinholtweb\telescope\ga4\ReportRequest;
+use justinholtweb\telescope\reports\DashboardSection;
 use justinholtweb\telescope\reports\ReportSection;
 
 /**
@@ -116,6 +117,13 @@ class Settings extends Model
     public array $sections = ReportSection::ALL;
 
     /**
+     * Which panels the site-wide dashboard fetches.
+     *
+     * @var list<string>
+     */
+    public array $dashboardSections = DashboardSection::ALL;
+
+    /**
      * Show the analytics panel in the entry sidebar automatically, without
      * needing the Telescope field added to a field layout.
      */
@@ -155,6 +163,7 @@ class Settings extends Model
             'includeQueryString' => 'Include query strings',
             'rowLimit' => 'Table rows',
             'sections' => 'Report sections',
+            'dashboardSections' => 'Dashboard panels',
             'autoAttachToEntries' => 'Show on all entries',
             'autoAttachSections' => 'Limited to sections',
             'widgetLimit' => 'Widget rows',
@@ -185,7 +194,7 @@ class Settings extends Model
             [['siteCredentials'], 'validateSiteCredentials'],
             [['credentials', 'clientId', 'clientSecret', 'refreshToken', 'propertyId'], 'string'],
             [['filterByHostname', 'includeQueryString', 'autoAttachToEntries'], 'boolean'],
-            [['sitePropertyIds', 'siteCredentials', 'siteRefreshTokens', 'sections', 'autoAttachSections'], 'safe'],
+            [['sitePropertyIds', 'siteCredentials', 'siteRefreshTokens', 'sections', 'autoAttachSections', 'dashboardSections'], 'safe'],
         ];
     }
 
@@ -359,6 +368,14 @@ class Settings extends Model
     public function getSections(): array
     {
         return ReportSection::normalize($this->sections);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getDashboardSections(): array
+    {
+        return DashboardSection::normalize($this->dashboardSections);
     }
 
     public function getCacheDuration(): int

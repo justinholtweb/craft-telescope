@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-    <div class="telescope">
+    <div class="telescope telescope-dashboard">
         {% if not isConfigured %}
             {% include 'telescope/_components/notice' with {
                 message: 'Telescope is not connected to Google Analytics yet. Add your credentials and property ID in the plugin settings.'|t('telescope'),
@@ -18,15 +18,18 @@
         {% else %}
             <div class="telescope-header">
                 <div>
-                    <h2>{{ 'Top pages'|t('telescope') }}</h2>
-                    <div class="telescope-period">{{ period.label }}</div>
+                    <h2>{{ 'Dashboard'|t('telescope') }}</h2>
+                    <div class="telescope-period">{{ report.periodLabel }}</div>
                 </div>
                 <div class="telescope-actions">
+                    {# `inputAttributes` rather than `class`: Craft's forms.select macro
+                       applies a passed `class` to the wrapping <div class="select">, so a
+                       JS hook given that way never reaches the <select> the listener sees. #}
                     {% if craft.app.isMultiSite %}
                         {{ forms.select({
                             id: 'siteId',
                             name: 'siteId',
-                            class: 'js-telescope-site',
+                            inputAttributes: { class: ['js-telescope-site'] },
                             options: sites|map(s => { label: s.name, value: s.id })|values,
                             value: siteId,
                         }) }}
@@ -34,39 +37,121 @@
                     {{ forms.select({
                         id: 'period',
                         name: 'period',
-                        class: 'js-telescope-period',
+                        inputAttributes: { class: ['js-telescope-period'] },
                         options: periodOptions,
                         value: period.handle ?? '',
                     }) }}
                 </div>
             </div>
 
-            {% if pages|length %}
-                <table class="data fullwidth telescope-table">
-                    <thead>
-                        <tr>
-                            <th>{{ 'Page'|t('telescope') }}</th>
-                            <th>{{ 'Path'|t('telescope') }}</th>
-                            <th class="telescope-numeric">{{ 'Views'|t('telescope') }}</th>
-                            <th class="telescope-numeric">{{ 'Visitors'|t('telescope') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for page in pages %}
-                            <tr>
-                                <td>{{ page.title ?: '—' }}</td>
-                                <td><span class="telescope-truncate code" title="{{ page.path }}">{{ page.path }}</span></td>
-                                <td class="telescope-numeric">{{ page.views|number_format }}</td>
-                                <td class="telescope-numeric">{{ page.users|number_format }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            {% for error in report.errors %}
+                {% include 'telescope/_components/notice' with { message: error, type: 'error' } only %}
+            {% endfor %}
+
+            {% if not report.hasData %}
+                {% if not report.hasErrors %}
+                    {% include 'telescope/_components/notice' with {
+                        message: 'No analytics data for this period yet. Google Analytics can take 24–48 hours to report on new traffic.'|t('telescope'),
+                        type: 'info',
+                    } only %}
+                {% endif %}
             {% else %}
-                {% include 'telescope/_components/notice' with {
-                    message: 'No page views recorded for this period.'|t('telescope'),
-                    type: 'info',
-                } only %}
+                <div class="telescope-cards">
+                    {% for card in report.cards %}
+                        <div class="telescope-card">
+                            <div class="telescope-card-label">{{ card.label|t('telescope') }}</div>
+                            <div class="telescope-card-value">{{ card.value }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% if report.timeline|length %}
+                    <div class="telescope-section">
+                        <div class="telescope-section-header">
+                            <h3>{{ 'Traffic over time'|t('telescope') }}</h3>
+                            {# Craft's .btn sets `display`, which beats the [hidden]
+                               attribute — use its own .hidden class instead. #}
+                            <button type="button" class="btn small hidden js-telescope-reset-zoom telescope-no-print">
+                                {{ 'Reset zoom'|t('telescope') }}
+                            </button>
+                        </div>
+                        <p class="telescope-hint telescope-no-print">
+                            {{ 'Drag across the chart to zoom into a range, scroll to zoom in and out, double-click to reset.'|t('telescope') }}
+                        </p>
+                        <div class="telescope-chart-wrap telescope-chart-canvas-wrap">
+                            <canvas class="js-telescope-chart"></canvas>
+                        </div>
+                        <script type="application/json" class="js-telescope-chart-data">{{ report.timeline|json_encode|raw }}</script>
+                    </div>
+                {% endif %}
+
+                <div class="telescope-panels">
+                    {% if report.sources|length %}
+                        {% include 'telescope/_components/breakdown' with {
+                            heading: 'Traffic sources'|t('telescope'),
+                            rows: report.sources,
+                            metricKey: 'sessions',
+                            metricLabel: 'Sessions'|t('telescope'),
+                            chart: 'doughnut',
+                        } only %}
+                    {% endif %}
+
+                    {% if report.devices|length %}
+                        {% include 'telescope/_components/breakdown' with {
+                            heading: 'Devices'|t('telescope'),
+                            rows: report.devices,
+                            metricKey: 'sessions',
+                            metricLabel: 'Sessions'|t('telescope'),
+                            chart: 'doughnut',
+                        } only %}
+                    {% endif %}
+
+                    {% if report.countries|length %}
+                        {% include 'telescope/_components/breakdown' with {
+                            heading: 'Top countries'|t('telescope'),
+                            rows: report.countries,
+                            metricKey: 'users',
+                            metricLabel: 'Visitors'|t('telescope'),
+                            chart: 'bars',
+                        } only %}
+                    {% endif %}
+
+                    {% if report.browsers|length %}
+                        {% include 'telescope/_components/breakdown' with {
+                            heading: 'Browsers'|t('telescope'),
+                            rows: report.browsers,
+                            metricKey: 'sessions',
+                            metricLabel: 'Sessions'|t('telescope'),
+                            chart: 'bars',
+                        } only %}
+                    {% endif %}
+                </div>
+
+                {% if report.topPages|length %}
+                    <div class="telescope-section">
+                        <h3>{{ 'Top pages'|t('telescope') }}</h3>
+                        <table class="data fullwidth telescope-table">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'Page'|t('telescope') }}</th>
+                                    <th>{{ 'Path'|t('telescope') }}</th>
+                                    <th class="telescope-numeric">{{ 'Views'|t('telescope') }}</th>
+                                    <th class="telescope-numeric">{{ 'Visitors'|t('telescope') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for page in report.topPages %}
+                                    <tr>
+                                        <td>{{ page.title ?: '—' }}</td>
+                                        <td><span class="telescope-truncate code" title="{{ page.path }}">{{ page.path }}</span></td>
+                                        <td class="telescope-numeric">{{ page.views|number_format }}</td>
+                                        <td class="telescope-numeric">{{ page.users|number_format }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
             {% endif %}
         {% endif %}
     </div>
